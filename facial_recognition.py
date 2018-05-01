@@ -6,11 +6,29 @@ import cv2
 import argparse
 import os
 import os.path
+import paho.mqtt.client as mqtt
+import time
+
+BROKER = "iot.cs.calvin.edu"
+PORT = 1883
+QOS = 1
+#  TOPIC = "data/faces"
+
+def on_message(mosq, obj, msg):                             # Function to retrieve file when received
+  print("received")
+  with open('face.jpg', 'wb') as fd:
+      fd.write(msg.payload)
+  img = cv2.imread('face.jpg')
+  match = findMatch(img)
+  print(match)
+
+client = mqtt.Client("P2")                                # Start MQTT Client, NB changed to P2
+client.connect("iot.cs.calvin.edu", 1883, 60)                 # Connect to server
+client.subscribe("highmount/camera",0)
+
+client.on_message = on_message                            # This is key - it calls the function
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--img", type = str, required=True)
-args = parser.parse_args()
 
 # some constants kept as default from facenet
 minsize = 20
@@ -96,6 +114,6 @@ def findMatch(unknown_img):
     return match
 
 generateDictionary()
-img = cv2.imread(args.img)
-match = findMatch(img)
-print(match)
+while True:                                               # Loop and wait for next image
+   client.loop(10)
+
