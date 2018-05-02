@@ -25,6 +25,8 @@ IMAGE_TOPIC='highmount/camera'
 IMAGE_FILE_NAME='last.jpg'
 AUTHORIZED_FOLDER_NAME='authorized'
 
+AUTH_THRESHOLD=1.02
+
 #This function is called when a message is recieved
 #It takes the image from the PI, writes it to a file, and then send it through the facial recognition system
 def on_message(mosq, obj, msg):                             # Function to retrieve file when received
@@ -110,14 +112,19 @@ def generateDictionary():
                 authorized[name] = face[0]
 
 
+# This function compares an image to all the authorized images. If the images matches another
+# passed the empirically found 'threshold of matching', then the name of the user is returned,
+# otherwise the appropriate output is returned (no match or no face found)
 def findMatch(unknown_img):
     unknown = getFace(unknown_img)
-    max_dist = 1.10
-    match = "No match"
+    max_dist = AUTH_THRESHOLD #threshold
+    match = "No match" #default if none is found
     if unknown:
         unknown_embeddings = unknown[0]['embedding']
         for name in authorized:
+            #compare embeddings
             dist = np.sqrt(np.sum(np.square(np.subtract(authorized[name]['embedding'], unknown_embeddings))))
+            #find person who is most likely if multiple below threshold
             if dist < max_dist:
                 max_dist = dist
                 match = name
