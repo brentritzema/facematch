@@ -150,7 +150,4 @@ def findMatch(unknown_img):
 
 generateDictionary()
 while True:                                               # Loop and wait for next image
-   #print(sendPi)
-   #client.loop(10)
-   #time.sleep(10)
    pass
