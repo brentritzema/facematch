@@ -3,7 +3,8 @@
 # received it is run through the system which detects faces and then tries to recognize them. Once a match is found (or
 # no match is found) it publishes to a seperate topic which the RasperryPi is subscribed to so that the Pi can act on the
 # information.
-
+# Date: 5/7/2018
+# CS300 Spring 2018 Final Project
 # Authors: Toussaint Cruise, Brent Ritzema
 
 import tensorflow as tf
@@ -26,6 +27,7 @@ RESPONSE_TOPIC="tcc3/facenet/response"
 IMAGE_FILE_NAME='last.jpg'
 AUTHORIZED_FOLDER_NAME='authorized'
 AUTH_THRESHOLD=1.02
+MODEL_NAME="20180402-114759/20180402-114759.pb"
 
 # some constants kept as default from facenet
 MINSIZE = 20
@@ -45,7 +47,7 @@ client.subscribe(IMAGE_TOPIC, QOS)
 client.loop_start()                              # initial start before loop
 
 #This function is called when a message is recieved
-#It takes the image from the PI, writes it to a file, and then send it through the facial recognition system
+#It takes the image from the PI, writes it to a file, and then sends it through the facial recognition system
 def on_message(mosq, obj, msg):          
   print("received image")
   with open(IMAGE_FILE_NAME, 'wb') as fd: #overwrites any old file
@@ -53,7 +55,9 @@ def on_message(mosq, obj, msg):
   
   img = cv2.imread(IMAGE_FILE_NAME)
   match = findMatch(img)
-  print(match) 
+  print(match)
+  
+  #Decide whether it is a match or no match and respond accordingly
   if (match == "No face found" or match == "No match"):
     client.publish(RESPONSE_TOPIC, 0, qos=QOS)
     print("published 0")
@@ -62,7 +66,7 @@ def on_message(mosq, obj, msg):
     print("published 1")
 
 
-
+#setup callback
 client.on_message = on_message 
 
 
@@ -74,7 +78,7 @@ sess = tf.Session()
 pnet, rnet, onet = detect_face.create_mtcnn(sess, 'align')
 
 # read model file downloaded from https://drive.google.com/file/d/1EXPBSXwTaqrSC0OhUdXNmKSh9qJUQ55-/view
-facenet.load_model("20180402-114759/20180402-114759.pb")
+facenet.load_model(MODEL_NAME)
 
 # Get input and output tensors
 images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
@@ -85,7 +89,8 @@ embedding_size = embeddings.get_shape()[1]
 
 
 # This function is the face detection and embedding function. It takes an image, detects all the faces within it, 
-# finds embeddings for every face, and returns a list of the faces via their corresponding embeddings.
+# finds embeddings for every face, and returns a list of the faces via their corresponding embeddings. This whole
+# function was made with much help from the use case of Arun Mandal.
 def getFace(img):
     faces = []
     img_size = np.asarray(img.shape)[0:2]
@@ -107,7 +112,7 @@ def getFace(img):
     return faces
 
 # This function is what allows for recognition. By generating values for particular features of a face, it allows
-# comparisons of those features to other faces.
+# comparisons of those features to other faces. It is called by getFace.
 def getEmbedding(resized):
     reshaped = resized.reshape(-1,INPUT_IMAGE_SIZE,INPUT_IMAGE_SIZE,3)
     feed_dict = {images_placeholder: reshaped, phase_train_placeholder: False}
@@ -126,8 +131,8 @@ def generateDictionary():
                 authorized[name] = face[0]
 
 
-# This function compares an image to all the authorized images. If the images matches another
-# passed the empirically found 'THRESHOLD of matching', then the name of the user is returned,
+# This function compares an image to all the authorized images. If the image matches another
+# past the empirically found 'THRESHOLD of matching', then the name of the user is returned,
 # otherwise the appropriate output is returned (no match or no face found)
 def findMatch(unknown_img):
     unknown = getFace(unknown_img)
@@ -148,6 +153,7 @@ def findMatch(unknown_img):
         match = "No face found"
     return match
 
+#Generate dictionary and wait for on_message callback.
 generateDictionary()
 while True:                                               # Loop and wait for next image
    pass
