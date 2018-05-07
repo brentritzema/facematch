@@ -1,3 +1,10 @@
+#pub.py is meant to run on the RaspberryPi. It allows you to wire a button, two LEDs
+#and a camera to the Pi. When the button is pressed, it takes a picture with the camera
+#and sends it to a MQTT topic (which hopefully the facial recognition server is subscribed to.
+#It then awaits a response and displays that response with the LEDs.
+#Date: 5/7/2018
+#Authors: Brent Ritzema and Toussaint Cruise
+
 import paho.mqtt.client as mqtt
 import time
 from picamera import PiCamera
@@ -31,6 +38,8 @@ client.loop_start()                              # initial start before loop
 def on_connect(client, userdata, rc, *extra_params):
 	print('Connected with result code='+str(rc))
 
+#Checks response, if it's a 1 (a match), it lights up the green LED, if it's a 0 (no match)
+# it lights up the red LED.
 def on_message(mosq, userdata, rc, *extra_params):
 	print("Response recieved")
 	answer = int(msg.payload)
@@ -43,6 +52,8 @@ def on_message(mosq, userdata, rc, *extra_params):
 		time.sleep(1)
 		GPIO.output(MATCH_LED, False)
 
+#This is a callback for when the button is pressed. It captures an image and
+#pushes it to the facial recognition server.
 def take_photo():
 	camera.start_preview()
 	camera.capture(IMAGE_FILENAME)
@@ -59,7 +70,10 @@ client.on_message = on_message
 client.subscribe(RESPONSE_TOPIC, QOS)
 GPIO.add_event_detect(BUTTON, GPIO.RISING, callback=take_photo, bouncetime=500)
 
+#wait for camera to 'wake up'
 time.sleep(2)
+
+#wait for callbacks
 while True:
 	pass
 
