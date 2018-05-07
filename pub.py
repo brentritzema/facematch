@@ -40,7 +40,7 @@ def on_connect(client, userdata, rc, *extra_params):
 
 #Checks response, if it's a 1 (a match), it lights up the green LED, if it's a 0 (no match)
 # it lights up the red LED.
-def on_message(mosq, userdata, rc, *extra_params):
+def on_message(mosq, obj, msg):
 	print("Response recieved")
 	answer = int(msg.payload)
 	if answer ==0:
