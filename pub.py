@@ -42,7 +42,7 @@ def on_connect(client, userdata, rc, *extra_params):
 # it lights up the red LED.
 def on_message(mosq, obj, msg):
 	answer = int(msg.payload)
-	print("Response recieved:", answer)
+	print("Response received:", answer)
 	
 	if answer ==0:
 		GPIO.output(NOMATCH_LED, True)
